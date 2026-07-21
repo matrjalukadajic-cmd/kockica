@@ -2,10 +2,18 @@
 <html lang="sr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>G4MBLER - AI Predictor Engine v2.0</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-user-select: none; user-select: none; }
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            -webkit-user-select: none; 
+            user-select: none;
+            touch-action: manipulation; /* Onemogućava double-tap zoom na moderne mobilne pregledače */
+        }
         body { background-color: #121212; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; color: #fff; padding: 20px 10px; }
         .phone-container { width: 100%; max-width: 410px; height: 750px; background: linear-gradient(180deg, #700026 0%, #4a0018 100%); border-radius: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.6); border: 4px solid #222; overflow: hidden; display: flex; flex-direction: column; position: relative; }
         @media (max-width: 450px) { .phone-container { border-radius: 0; border: none; height: 100vh; max-height: 100vh; } }
@@ -98,7 +106,21 @@
     </div>
 
     <script>
-        // TAČNI ŠABLONI OD 5 KARATA SA TVOJE SLIKE
+        // SPREČAVANJE ZUMIRANJA NA IPHONE (iOS Safari double-tap i pinch fix)
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault(); // Blokira dvostruki klik za zum
+            }
+            lastTouchEnd = now;
+        }, false);
+
+        document.addEventListener('gesturestart', function (event) {
+            event.preventDefault(); // Blokira širenje sa dva prsta
+        });
+
+        // TAČNI ŠABLONI OD 5 KARATA
         const initialPatterns = {
             "black,red,red,red,black": { red: 20, black: 30 },
             "red,red,red,black,black": { red: 19, black: 43 },
@@ -126,14 +148,14 @@
 
         let combinationDatabase = loadDatabase();
 
-        // OČIŠĆENJE BAZI OD KRAĆIH ŠABLONA (ako su ostali od ranije)
+        // Očišćenje od kraćih šablona
         Object.keys(combinationDatabase).forEach(key => {
             if (key.split(',').length < 5) {
                 delete combinationDatabase[key];
             }
         });
 
-        // Uvek ubaci tvoje početne šablone ako nedostaju
+        // Osiguravanje prisustva uvodnih šablona
         Object.keys(initialPatterns).forEach(key => {
             if (!combinationDatabase[key]) {
                 combinationDatabase[key] = initialPatterns[key];
@@ -196,7 +218,6 @@
         }
 
         function generatePrediction() {
-            // Blokada ako nema tačno 5 karata
             if (cardHistory.length !== 5) { 
                 alert("Morate uneti tačno 5 karata!"); 
                 return; 
@@ -230,7 +251,6 @@
             const finalSuit = suitArray[Math.floor(Math.random() * suitArray.length)];
             lastPrediction = { color: resultColor, suit: finalSuit };
 
-            // ISPIS ODMAH (BEZ ANIMACIJE)
             predictedCard.innerText = finalSuit;
             predictedCard.className = `predicted-card-box ${resultColor === 'red' ? 'red-suit' : 'black-suit'}`;
             
@@ -257,7 +277,6 @@
             const currentColors = cardHistory.map(c => c.color);
             const key = currentColors.join(',');
 
-            // Pamti se SAMO PUNA sekvenca od 5 karata
             if (!combinationDatabase[key]) {
                 combinationDatabase[key] = { red: 0, black: 0 };
             }
@@ -265,7 +284,6 @@
 
             saveDatabase(combinationDatabase);
 
-            // Pomeranje istorije
             cardHistory.unshift({ color: realOutcomeColor, suit: realOutcomeSuit }); 
             if (cardHistory.length > 5) { cardHistory.pop(); }
 
