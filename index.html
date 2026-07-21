@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
     <title>G4MBLER - AI Predictor Engine v2.0</title>
     <style>
         * { 
@@ -12,16 +12,29 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             -webkit-user-select: none; 
             user-select: none;
-            touch-action: manipulation; /* Onemogućava double-tap zoom na moderne mobilne pregledače */
+            touch-action: manipulation; /* Trajno zabranjuje double-tap zoom na svim elementima */
+            -webkit-tap-highlight-color: transparent;
         }
-        body { background-color: #121212; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; color: #fff; padding: 20px 10px; }
+        body { 
+            background-color: #121212; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: flex-start; 
+            min-height: 100vh; 
+            color: #fff; 
+            padding: 20px 10px; 
+            touch-action: manipulation;
+        }
         .phone-container { width: 100%; max-width: 410px; height: 750px; background: linear-gradient(180deg, #700026 0%, #4a0018 100%); border-radius: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.6); border: 4px solid #222; overflow: hidden; display: flex; flex-direction: column; position: relative; }
         @media (max-width: 450px) { .phone-container { border-radius: 0; border: none; height: 100vh; max-height: 100vh; } }
         .header { display: flex; justify-content: space-between; align-items: center; padding: 25px 20px 10px 20px; }
         .logo-area { display: flex; align-items: center; gap: 8px; }
         .logo-icon { width: 24px; height: 24px; background: #fff; color: #700026; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 14px; border-radius: 6px; transform: rotate(-10deg); box-shadow: 2px 2px 5px rgba(0,0,0,0.3); }
         .logo-text { font-size: 16px; font-weight: 800; letter-spacing: 1px; }
-        .btn-restart { background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; padding: 6px 14px; font-size: 11px; font-weight: bold; border-radius: 6px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.1s ease; }
+        
+        /* Font postavljen na 16px radi sprecavanja iOS zumiranja */
+        .btn-restart { background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; padding: 6px 14px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; }
         .btn-restart:active { transform: scale(0.95); background: rgba(255, 255, 255, 0.25); }
         .content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-around; padding: 15px; text-align: center; }
         h2 { font-size: 18px; font-weight: 600; margin-bottom: 5px; letter-spacing: 0.5px; }
@@ -32,18 +45,20 @@
         .red-suit { color: #e60000; }
         .black-suit { color: #111; }
         .controls-row { display: flex; justify-content: center; align-items: center; gap: 12px; width: 100%; padding: 0 5px; }
-        .btn { border: none; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; transition: transform 0.1s, opacity 0.2s; text-transform: uppercase; }
+        
+        /* Sva dugmad obavezno 16px font */
+        .btn { border: none; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; text-transform: uppercase; touch-action: manipulation; }
         .btn:active { transform: scale(0.95); }
         .btn-red { background: #cc0000; color: #fff; padding: 12px 22px; border: 2px solid #ff4d4d; }
         .btn-black { background: #111; color: #fff; padding: 12px 22px; border: 2px solid #333; }
-        .btn-generate { background: linear-gradient(180deg, #2ecc71 0%, #27ae60 100%); color: #fff; padding: 16px 20px; font-size: 14px; letter-spacing: 1px; box-shadow: 0 0 15px rgba(46, 204, 113, 0.4); flex: 1; max-width: 140px; }
+        .btn-generate { background: linear-gradient(180deg, #2ecc71 0%, #27ae60 100%); color: #fff; padding: 16px 20px; font-size: 16px; letter-spacing: 1px; box-shadow: 0 0 15px rgba(46, 204, 113, 0.4); flex: 1; max-width: 140px; }
         .btn-generate:disabled { background: #444; color: #888; box-shadow: none; cursor: not-allowed; }
         .prediction-section { width: 100%; display: flex; flex-direction: column; align-items: center; margin-top: 5px; }
         .predicted-card-box { width: 85px; height: 120px; background: #fff; border-radius: 10px; margin: 12px 0; display: flex; justify-content: center; align-items: center; font-size: 44px; box-shadow: 0 8px 25px rgba(0,0,0,0.5); }
         .predicted-card-box.hidden-card { background: linear-gradient(135deg, #2c3e50 0%, #0f171e 100%); border: 2px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.1); font-size: 28px; }
-        .prediction-info { font-size: 12px; color: #aaa; margin-top: -5px; margin-bottom: 10px; height: 16px; }
+        .prediction-info { font-size: 13px; color: #aaa; margin-top: -5px; margin-bottom: 10px; height: 16px; }
         .feedback-buttons { display: flex; gap: 15px; width: 100%; justify-content: center; }
-        .btn-feedback { background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.4); color: #fff; padding: 10px 30px; min-width: 90px; }
+        .btn-feedback { background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.4); color: #fff; padding: 10px 30px; min-width: 90px; font-size: 16px; }
     
         .stats-panel { width: 100%; max-width: 410px; background: #1e1e1e; border: 2px solid #333; border-radius: 15px; margin-top: 20px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
         .stats-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 10px; }
@@ -106,18 +121,24 @@
     </div>
 
     <script>
-        // SPREČAVANJE ZUMIRANJA NA IPHONE (iOS Safari double-tap i pinch fix)
+        // RIGOROZNA ZABRANA ZUMIRANJA ZA iOS (SAFARI)
         let lastTouchEnd = 0;
         document.addEventListener('touchend', function (event) {
             const now = (new Date()).getTime();
             if (now - lastTouchEnd <= 300) {
-                event.preventDefault(); // Blokira dvostruki klik za zum
+                event.preventDefault();
             }
             lastTouchEnd = now;
-        }, false);
+        }, { passive: false });
+
+        document.addEventListener('touchstart', function (event) {
+            if (event.touches.length > 1) {
+                event.preventDefault(); // Blokira zum sa 2 prsta
+            }
+        }, { passive: false });
 
         document.addEventListener('gesturestart', function (event) {
-            event.preventDefault(); // Blokira širenje sa dva prsta
+            event.preventDefault(); // Dodatna zaštita za gestove
         });
 
         // TAČNI ŠABLONI OD 5 KARATA
@@ -148,14 +169,13 @@
 
         let combinationDatabase = loadDatabase();
 
-        // Očišćenje od kraćih šablona
+        // Očišćenje baze od starih kraćih šablona
         Object.keys(combinationDatabase).forEach(key => {
             if (key.split(',').length < 5) {
                 delete combinationDatabase[key];
             }
         });
 
-        // Osiguravanje prisustva uvodnih šablona
         Object.keys(initialPatterns).forEach(key => {
             if (!combinationDatabase[key]) {
                 combinationDatabase[key] = initialPatterns[key];
