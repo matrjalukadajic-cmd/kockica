@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G4MBLER - AI Predictor Engine v2.0</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-user-select: none; user-select: none; }
+        body { background-color: #121212; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; color: #fff; padding: 20px 10px; }
+        .phone-container { width: 100%; max-width: 410px; height: 750px; background: linear-gradient(180deg, #700026 0%, #4a0018 100%); border-radius: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.6); border: 4px solid #222; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+        @media (max-width: 450px) { .phone-container { border-radius: 0; border: none; height: 100vh; max-height: 100vh; } }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 25px 20px 10px 20px; }
+        .logo-area { display: flex; align-items: center; gap: 8px; }
+        .logo-icon { width: 24px; height: 24px; background: #fff; color: #700026; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 14px; border-radius: 6px; transform: rotate(-10deg); box-shadow: 2px 2px 5px rgba(0,0,0,0.3); }
+        .logo-text { font-size: 16px; font-weight: 800; letter-spacing: 1px; }
+        .btn-restart { background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; padding: 6px 14px; font-size: 11px; font-weight: bold; border-radius: 6px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.1s ease; }
+        .btn-restart:active { transform: scale(0.95); background: rgba(255, 255, 255, 0.25); }
+        .content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-around; padding: 15px; text-align: center; }
+        h2 { font-size: 18px; font-weight: 600; margin-bottom: 5px; letter-spacing: 0.5px; }
+        .history-section { width: 100%; }
+        .cards-row { display: flex; justify-content: center; gap: 8px; margin: 15px 0; min-height: 85px; }
+        .card { width: 60px; height: 85px; background: #fff; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); display: flex; justify-content: center; align-items: center; font-size: 28px; transition: all 0.2s ease-in-out; }
+        .card.empty { background: rgba(255, 255, 255, 0.1); border: 2px dashed rgba(255, 255, 255, 0.3); box-shadow: none; }
+        .red-suit { color: #e60000; }
+        .black-suit { color: #111; }
+        .controls-row { display: flex; justify-content: center; align-items: center; gap: 12px; width: 100%; padding: 0 5px; }
+        .btn { border: none; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; transition: transform 0.1s, opacity 0.2s; text-transform: uppercase; }
+        .btn:active { transform: scale(0.95); }
+        .btn-red { background: #cc0000; color: #fff; padding: 12px 22px; border: 2px solid #ff4d4d; }
+        .btn-black { background: #111; color: #fff; padding: 12px 22px; border: 2px solid #333; }
+        .btn-generate { background: linear-gradient(180deg, #2ecc71 0%, #27ae60 100%); color: #fff; padding: 16px 20px; font-size: 14px; letter-spacing: 1px; box-shadow: 0 0 15px rgba(46, 204, 113, 0.4); flex: 1; max-width: 140px; }
+        .prediction-section { width: 100%; display: flex; flex-direction: column; align-items: center; margin-top: 5px; }
+        .predicted-card-box { width: 85px; height: 120px; background: #fff; border-radius: 10px; margin: 12px 0; display: flex; justify-content: center; align-items: center; font-size: 44px; box-shadow: 0 8px 25px rgba(0,0,0,0.5); transition: all 0.3s ease; }
+        .predicted-card-box.hidden-card { background: linear-gradient(135deg, #2c3e50 0%, #0f171e 100%); border: 2px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.1); font-size: 28px; }
+        /* NOVO: Stilovi za ispis informacija o algoritmu i sigurnosti */
+        .prediction-info { font-size: 12px; color: #aaa; margin-top: -5px; margin-bottom: 10px; height: 16px; }
+        .red-suit { color: #e60000; }
+        .black-suit { color: #111; }
+        .feedback-buttons { display: flex; gap: 15px; width: 100%; justify-content: center; }
+        .btn-feedback { background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.4); color: #fff; padding: 10px 30px; min-width: 90px; }
+        .stats-panel { width: 100%; max-width: 410px; background: #1e1e1e; border: 2px solid #333; border-radius: 15px; margin-top: 20px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .stats-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 10px; }
+        .stats-panel h3 { font-size: 14px; color: #2ecc71; text-transform: uppercase; letter-spacing: 1px; }
+        /* NOVO: Indikator popunjenosti baze */
+        .db-count { font-size: 11px; color: #888; }
+        .stats-list { max-height: 150px; overflow-y: auto; font-size: 13px; list-style: none; }
+        .stats-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #262626; }
+        .combination-dots { display: flex; gap: 4px; align-items: center; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .dot.red { background-color: #ff4d4d; }
+        .dot.black { background-color: #333; border: 1px solid #555; }
+        .shuffling { animation: pulse 0.15s infinite alternate; }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); opacity: 0.7; } }
+    </style>
+</head>
+<body>
+
+    <div class="phone-container">
+        <div class="header">
+            <div class="logo-area">
+                <div class="logo-icon">🎲</div>
+                <div class="logo-text">G4MBLER v2</div>
+            </div>
+            <button class="btn-restart" onclick="clearActiveCards()">Restart</button>
+        </div>
+
+        <div class="content">
+            <div class="history-section">
+                <h2>Fill card from slot history (max 5)</h2>
+                <div class="cards-row" id="history-row"></div>
+            </div>
+
+            <div class="controls-row">
+                <button class="btn btn-red" onclick="addCard('red')">Red</button>
+                <button class="btn btn-generate" id="btn-generate" onclick="generatePrediction()">Generate</button>
+                <button class="btn btn-black" onclick="addCard('black')">Black</button>
+            </div>
+
+            <div class="prediction-section">
+                <h2>AI Prediction</h2>
+                
+                <div class="predicted-card-box hidden-card" id="predicted-card">?</div>
+                
+                <!-- NOVO: Mesto za ispis nivoa sigurnosti -->
+                <div class="prediction-info" id="prediction-info">Čeka se generisanje...</div>
+
+                <div class="feedback-buttons">
+                    <button class="btn btn-feedback" onclick="handleFeedback('YES')">YES</button>
+                    <button class="btn btn-feedback" onclick="handleFeedback('NO')">NO</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stats-panel">
+        <div class="stats-header">
+            <h3>AI Memory (Patterns)</h3>
+            <!-- NOVO: Prikaz ukupnog broja šablona -->
+            <div class="db-count" id="db-count">0 patterns</div>
+        </div>
+        <ul class="stats-list" id="stats-list">
+            <li style="color: #aaa; font-style: italic; font-size: 12px;">Čeka se trening...</li>
+        </ul>
+    </div>
+
+    <script>
+        let cardHistory = []; 
+        // Baza sada čuva podatke u drugačijem formatu radi lakše pretrage
+        let combinationDatabase = JSON.parse(localStorage.getItem('g4mbler_ai_database_v2')) || {}; 
+        
+        let lastPrediction = null; 
+        let currentSequenceKeys = []; // Čuva ključeve sekvenci različitih dužina
+        
+        const suits = { red: ['♦', '♥'], black: ['♠', '♣'] };
+
+        renderHistory();
+        renderStats();
+
+        function setInfo(msg, color='') {
+            const infoEl = document.getElementById('prediction-info');
+            infoEl.textContent = msg;
+            infoEl.className = 'prediction-info ' + color;
+        }
+
+        function clearActiveCards() {
+            cardHistory = [];
+            renderHistory();
+            const predictedCard = document.getElementById('predicted-card');
+            predictedCard.innerText = "?";
+            predictedCard.className = "predicted-card-box hidden-card";
+            lastPrediction = null;
+            setInfo("Čeka se generisanje...");
+        }
+
+        function addCard(color) {
+            if (cardHistory.length >= 5) { setInfo("History full (max 5). Press Generate.","red-suit"); return; }
+            const suitArray = suits[color];
+            const randomSuit = suitArray[Math.floor(Math.random() * suitArray.length)];
+            cardHistory.push({ color: color, suit: randomSuit }); 
+            renderHistory();
+            setInfo("Card added. Ready to Generate.");
+        }
+
+        function renderHistory() {
+            const historyRow = document.getElementById('history-row');
+            historyRow.innerHTML = '';
+            for (let i = 0; i < cardHistory.length; i++) {
+                const cardData = cardHistory[i];
+                const cardClass = cardData.color === 'red' ? 'red-suit' : 'black-suit';
+                historyRow.innerHTML += `<div class="card ${cardClass}">${cardData.suit}</div>`;
+            }
+            const emptySlotsCount = 5 - cardHistory.length;
+            for (let i = 0; i < emptySlotsCount; i++) {
+                historyRow.innerHTML += `<div class="card empty"></div>`;
+            }
+        }
+
+        // --- NOVI ALGORITAM ZA PREDVIĐANJE SA 5 NIVOA ---
+        function findBestPrediction(colors) {
+            // colors je niz npr ['red', 'red', 'black']
+            const len = colors.length;
+            
+            // Back-off model: Krećemo od najduže sekvence ka najkraćoj
+            for (let depth = len; depth >= 1; depth--) {
+                // Uzimamo poslednjih 'depth' karata
+                // npr ako imamo 5 karata, depth ide 5, 4, 3, 2, 1
+                const subSequence = colors.slice(len - depth);
+                const key = subSequence.join(',');
+                
+                if (combinationDatabase[key]) {
+                    const stats = combinationDatabase[key];
+                    const total = stats.red + stats.black;
+                    
+                    if (total > 0) {
+                        let predictedColor = '';
+                        // Statistička odluka
+                        if (stats.red > stats.black) predictedColor = 'red';
+                        else if (stats.black > stats.red) predictedColor = 'black';
+                        else predictedColor = Math.random() > 0.5 ? 'red' : 'black'; // 50/50 ako je jednako
+
+                        // Računamo procenat sigurnosti za taj nivo
+                        const confidence = Math.round((stats[predictedColor] / total) * 100);
+
+                        return {
+                            color: predictedColor,
+                            depth: depth, // Na kom nivou je našao meč
+                            confidence: confidence,
+                            totalMatches: total,
+                            patternKey: key
+                        };
+                    }
+                }
+            }
+            
+            // Ako bukvalno ništa nije našao u bazi (prvi put pokreće app)
+            return {
+                color: Math.random() > 0.5 ? 'red' : 'black',
+                depth: 0,
+                confidence: 50,
+                totalMatches: 0,
+                patternKey: null
+            };
+        }
+
+        function generatePrediction() {
+            if (cardHistory.length === 0) { alert("Enter at least one card!"); return; }
+
+            const predictedCard = document.getElementById('predicted-card');
+            const btnGen = document.getElementById('btn-generate');
+            
+            predictedCard.className = "predicted-card-box hidden-card shuffling";
+            predictedCard.innerText = "⏳";
+            setInfo("Analysing 5-level database...");
+            btnGen.disabled = true; // Isključi dugme dok misli
+
+            // Uzimamo samo boje iz istorije
+            const currentColors = cardHistory.map(c => c.color);
+
+            setTimeout(() => {
+                // POZIV NOVOG ALGORITMA
+                const result = findBestPrediction(currentColors);
+                
+                // Generisanje vizuala karte
+                const suitArray = suits[result.color];
+                const finalSuit = suitArray[Math.floor(Math.random() * suitArray.length)];
+                lastPrediction = { color: result.color, suit: finalSuit };
+                // Pametimo ključeve svih pod-sekvenci da bismo ih ažurirali u handleFeedback
+                currentSequenceKeys = [];
+                for(let i=1; i<=currentColors.length; i++) {
+                    currentSequenceKeys.push(currentColors.slice(currentColors.length - i).join(','));
+                }
+
+                // Prikaz rezultata
+                predictedCard.innerText = finalSuit;
+                predictedCard.className = `predicted-card-box ${result.color === 'red' ? 'red-suit' : 'black-suit'}`;
+                
+                // Ispis inteligentnih informacija
+                let infoMsg = "";
+                let infoColor = "";
+                if (result.depth > 0) {
+                    infoMsg = `Lvl ${result.depth} Match (${result.confidence}% secure, ${result.totalMatches}x seen)`;
+                    // Bojimo info na osnovu sigurnosti
+                    if (result.confidence >= 70) infoColor = "red-suit"; // Vrlo sigurno (koristim red klasu za isticanje)
+                    else if (result.confidence < 55) infoColor = "black-suit"; // Nesigurno
+                } else {
+                    infoMsg = "No data. Random guess (50%).";
+                }
+                setInfo(infoMsg, infoColor);
+                btnGen.disabled = false;
+
+            }, 1000); // Smanjeno vreme čekanja na 1s
+        }
+
+        function handleFeedback(answer) {
+            const predictedCard = document.getElementById('predicted-card');
+            
+            if (!lastPrediction || predictedCard.innerText === "?" || predictedCard.innerText === "⏳") return;
+
+            // Određivanje stvarne boje
+            let realOutcomeColor = lastPrediction.color;
+            let realOutcomeSuit = lastPrediction.suit;
+            if (answer === 'NO') {
+                realOutcomeColor = lastPrediction.color === 'red' ? 'black' : 'red';
+                const suitArray = suits[realOutcomeColor]; realOutcomeSuit = suitArray[Math.floor(Math.random() * suitArray.length)];
+            }
+
+            // --- AŽURIRANJE BAZE (TRENING) ---
+            // NOVO: Ažuriramo statistiku za SVE dužine sekvenci (1, 2, 3, 4, 5)
+            const currentColors = cardHistory.map(c => c.color);
+            
+            // Prolazimo kroz sve moguće dužine sekvence završno sa ovom kartom
+            for (let i = 1; i <= currentColors.length; i++) {
+                // Pravimo pod-sekvencu (npr. ako je ušlo 5 karata, pravimo ključeve za poslednju 1, poslednje 2, 3, 4 i svih 5)
+                const subSequence = currentColors.slice(currentColors.length - i);
+                const key = subSequence.join(',');
+
+                if (!combinationDatabase[key]) {
+                    combinationDatabase[key] = { red: 0, black: 0 };
+                }
+                // Dodajemo stvarni ishod u statistiku za taj šablon
+                combinationDatabase[key][realOutcomeColor]++;
+            }
+
+            // Čuvanje nove verzije baze
+            localStorage.setItem('g4mbler_ai_database_v2', JSON.stringify(combinationDatabase));
+
+            // Logika pomeranja karata (Shift)
+            cardHistory.unshift({ color: realOutcomeColor, suit: realOutcomeSuit }); 
+            if (cardHistory.length > 5) { cardHistory.pop(); }
+
+            // Reset interfejsa
+            renderHistory();
+            renderStats();
+            predictedCard.innerText = "?";
+            predictedCard.className = "predicted-card-box hidden-card";
+            lastPrediction = null;
+            setInfo("Learned. Ready for next Generate.");
+        }
+
+        function renderStats() {
+            const statsList = document.getElementById('stats-list');
+            const dbCountEl = document.getElementById('db-count');
+            statsList.innerHTML = '';
+
+            const keys = Object.keys(combinationDatabase);
+            dbCountEl.textContent = `${keys.length} patterns learned`;
+
+            if (keys.length === 0) {
+                statsList.innerHTML = `<li style="color: #aaa; font-style: italic; font-size: 12px;">Čeka se prvi ishod...</li>`;
+                return;
+            }
+
+            // Sortiramo ključeve tako da duži šabloni budu gore, i sortiramo po abecedi radi preglednosti
+            const sortedKeys = keys.sort((a, b) => {
+                if (b.split(',').length !== a.split(',').length) {
+                    return b.split(',').length - a.split(',').length; // Duži šabloni prvo
+                }
+                return a.localeCompare(b);
+            });
+
+            // Prikazujemo samo prvih 20 radi performansi, ako je baza ogromna
+            const keysToDisplay = sortedKeys.slice(0, 30);
+
+            keysToDisplay.forEach(key => {
+                const colors = key.split(',');
+                let dotsHtml = '<div class="combination-dots">';
+                colors.forEach(col => { dotsHtml += `<span class="dot ${col}"></span>`; });
+                dotsHtml += '</div>';
+
+                const stats = combinationDatabase[key];
+                const total = stats.red + stats.black;
+                // Prikazujemo i nivo (dužinu ključa)
+                const level = colors.length;
+                
+                statsList.innerHTML += `
+                    <li class="stats-item">
+                        ${dotsHtml}
+                        <span style="font-weight:bold; color:#888;">L${level} -> <span style="color:#ff4d4d">R:${stats.red}</span> | <span style="color:#eee">B:${stats.black}</span></span>
+                    </li>
+                `;
+            });
+            
+            if(keys.length > 30) {
+                statsList.innerHTML += `<li style="color: #666; font-style: italic; font-size: 11px; text-align:center; padding-top:5px;">And ${keys.length - 30} more patterns...</li>`;
+            }
+        }
+    </script>
+</body>
+</html>
