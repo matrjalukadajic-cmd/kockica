@@ -29,15 +29,17 @@
         .btn-red { background: #cc0000; color: #fff; padding: 12px 22px; border: 2px solid #ff4d4d; }
         .btn-black { background: #111; color: #fff; padding: 12px 22px; border: 2px solid #333; }
         .btn-generate { background: linear-gradient(180deg, #2ecc71 0%, #27ae60 100%); color: #fff; padding: 16px 20px; font-size: 14px; letter-spacing: 1px; box-shadow: 0 0 15px rgba(46, 204, 113, 0.4); flex: 1; max-width: 140px; }
+        .btn-generate:disabled { background: #444; color: #888; box-shadow: none; cursor: not-allowed; }
         .prediction-section { width: 100%; display: flex; flex-direction: column; align-items: center; margin-top: 5px; }
-        .predicted-card-box { width: 85px; height: 120px; background: #fff; border-radius: 10px; margin: 12px 0; display: flex; justify-content: center; align-items: center; font-size: 44px; box-shadow: 0 8px 25px rgba(0,0,0,0.5); transition: all 0.3s ease; }
+        .predicted-card-box { width: 85px; height: 120px; background: #fff; border-radius: 10px; margin: 12px 0; display: flex; justify-content: center; align-items: center; font-size: 44px; box-shadow: 0 8px 25px rgba(0,0,0,0.5); }
         .predicted-card-box.hidden-card { background: linear-gradient(135deg, #2c3e50 0%, #0f171e 100%); border: 2px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.1); font-size: 28px; }
         .prediction-info { font-size: 12px; color: #aaa; margin-top: -5px; margin-bottom: 10px; height: 16px; }
         .feedback-buttons { display: flex; gap: 15px; width: 100%; justify-content: center; }
         .btn-feedback { background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.4); color: #fff; padding: 10px 30px; min-width: 90px; }
+    
         .stats-panel { width: 100%; max-width: 410px; background: #1e1e1e; border: 2px solid #333; border-radius: 15px; margin-top: 20px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
         .stats-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 10px; }
-        .stats-panel h3 { font-size: 14px; color: #2ecc71; text-transform: uppercase; letter-spacing: 1px; }
+        .stats-panel h3 { font-size: 13px; color: #2ecc71; text-transform: uppercase; letter-spacing: 1px; }
         .db-count { font-size: 11px; color: #888; }
         .stats-list { max-height: 180px; overflow-y: auto; font-size: 13px; list-style: none; }
         .stats-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #262626; }
@@ -45,8 +47,6 @@
         .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
         .dot.red { background-color: #ff4d4d; }
         .dot.black { background-color: #333; border: 1px solid #555; }
-        .shuffling { animation: pulse 0.15s infinite alternate; }
-        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); opacity: 0.7; } }
     </style>
 </head>
 <body>
@@ -62,13 +62,13 @@
 
         <div class="content">
             <div class="history-section">
-                <h2>Fill card from slot history (exactly 5)</h2>
+                <h2>Fill card slot history (exactly 5)</h2>
                 <div class="cards-row" id="history-row"></div>
             </div>
 
             <div class="controls-row">
                 <button class="btn btn-red" onclick="addCard('red')">Red</button>
-                <button class="btn btn-generate" id="btn-generate" onclick="generatePrediction()">Generate</button>
+                <button class="btn btn-generate" id="btn-generate" onclick="generatePrediction()" disabled>Generate</button>
                 <button class="btn btn-black" onclick="addCard('black')">Black</button>
             </div>
 
@@ -77,7 +77,7 @@
                 
                 <div class="predicted-card-box hidden-card" id="predicted-card">?</div>
                 
-                <div class="prediction-info" id="prediction-info">Čeka se generisanje...</div>
+                <div class="prediction-info" id="prediction-info">Unesite 5 karata za aktivaciju...</div>
 
                 <div class="feedback-buttons">
                     <button class="btn btn-feedback" onclick="handleFeedback('YES')">YES</button>
@@ -90,7 +90,7 @@
     <div class="stats-panel">
         <div class="stats-header">
             <h3>BAZA ISHODA ŠABLONA (AI MEMORIJA)</h3>
-            <div class="db-count" id="db-count">0 patterns</div>
+            <div class="db-count" id="db-count">0 šablona</div>
         </div>
         <ul class="stats-list" id="stats-list">
             <li style="color: #aaa; font-style: italic; font-size: 12px;">Učitavanje...</li>
@@ -98,16 +98,15 @@
     </div>
 
     <script>
-        // POČETNI ŠABLONI (Uvek prisutni u bazi)
+        // TAČNI ŠABLONI OD 5 KARATA SA TVOJE SLIKE
         const initialPatterns = {
-            "black,red,red,red": { red: 20, black: 30 },
-            "red,red,black,black": { red: 19, black: 43 },
-            "black,black,black,red": { red: 32, black: 24 }
+            "black,red,red,red,black": { red: 20, black: 30 },
+            "red,red,red,black,black": { red: 19, black: 43 },
+            "black,black,red,red,black": { red: 32, black: 24 }
         };
 
         let cardHistory = []; 
         
-        // Funkcija za bezbedno učitavanje baze sa telefona
         function loadDatabase() {
             try {
                 let data = localStorage.getItem('g4mbler_ai_database_v2');
@@ -117,18 +116,24 @@
             }
         }
 
-        // Funkcija za čuvanje na telefonu
         function saveDatabase(db) {
             try {
                 localStorage.setItem('g4mbler_ai_database_v2', JSON.stringify(db));
             } catch (e) {
-                console.error("Ne mogu sačuvati podatke na uređaju", e);
+                console.error("Greška pri čuvanju", e);
             }
         }
 
         let combinationDatabase = loadDatabase();
 
-        // Spajanje početnih šablona sa sačuvanom bazom
+        // OČIŠĆENJE BAZI OD KRAĆIH ŠABLONA (ako su ostali od ranije)
+        Object.keys(combinationDatabase).forEach(key => {
+            if (key.split(',').length < 5) {
+                delete combinationDatabase[key];
+            }
+        });
+
+        // Uvek ubaci tvoje početne šablone ako nedostaju
         Object.keys(initialPatterns).forEach(key => {
             if (!combinationDatabase[key]) {
                 combinationDatabase[key] = initialPatterns[key];
@@ -155,22 +160,23 @@
             predictedCard.innerText = "?";
             predictedCard.className = "predicted-card-box hidden-card";
             lastPrediction = null;
-            setInfo("Čeka se generisanje...");
+            document.getElementById('btn-generate').disabled = true;
+            setInfo("Unesite 5 karata za aktivaciju...");
         }
 
         function addCard(color) {
-            if (cardHistory.length >= 5) { 
-                setInfo("Maksimalno 5 karata! Pritisnite Generate.","red-suit"); 
-                return; 
-            }
+            if (cardHistory.length >= 5) return;
+            
             const suitArray = suits[color];
             const randomSuit = suitArray[Math.floor(Math.random() * suitArray.length)];
             cardHistory.push({ color: color, suit: randomSuit }); 
             renderHistory();
             
             if (cardHistory.length === 5) {
-                setInfo("Uneto 5 karata. Spremno za Generate!", "red-suit");
+                document.getElementById('btn-generate').disabled = false;
+                setInfo("Spremno! Pritisnite Generate.", "red-suit");
             } else {
+                document.getElementById('btn-generate').disabled = true;
                 setInfo(`Uneto karata: ${cardHistory.length}/5`);
             }
         }
@@ -189,85 +195,56 @@
             }
         }
 
-        function findExactPrediction(colors) {
-            const key = colors.join(',');
-            
-            if (combinationDatabase[key]) {
-                const stats = combinationDatabase[key];
-                const total = stats.red + stats.black;
-                
-                if (total > 0) {
-                    let predictedColor = '';
-                    if (stats.red > stats.black) predictedColor = 'red';
-                    else if (stats.black > stats.red) predictedColor = 'black';
-                    else predictedColor = Math.random() > 0.5 ? 'red' : 'black';
-
-                    const confidence = Math.round((stats[predictedColor] / total) * 100);
-
-                    return {
-                        color: predictedColor,
-                        confidence: confidence,
-                        totalMatches: total,
-                        patternKey: key
-                    };
-                }
-            }
-            
-            return {
-                color: Math.random() > 0.5 ? 'red' : 'black',
-                confidence: 50,
-                totalMatches: 0,
-                patternKey: key
-            };
-        }
-
         function generatePrediction() {
-            // USLOV: Zahteva se TAČNO 5 karata
-            if (cardHistory.length < 5) { 
-                alert("Morate uneti tačno 5 karata pre generisanja!"); 
-                setInfo("Unesite tačno 5 karata!", "red-suit");
+            // Blokada ako nema tačno 5 karata
+            if (cardHistory.length !== 5) { 
+                alert("Morate uneti tačno 5 karata!"); 
                 return; 
             }
 
             const predictedCard = document.getElementById('predicted-card');
-            const btnGen = document.getElementById('btn-generate');
-            
-            predictedCard.className = "predicted-card-box hidden-card shuffling";
-            predictedCard.innerText = "⏳";
-            setInfo("Analiziram bazu...");
-            btnGen.disabled = true;
-
             const currentColors = cardHistory.map(c => c.color);
+            const key = currentColors.join(',');
 
-            setTimeout(() => {
-                const result = findExactPrediction(currentColors);
-                
-                const suitArray = suits[result.color];
-                const finalSuit = suitArray[Math.floor(Math.random() * suitArray.length)];
-                lastPrediction = { color: result.color, suit: finalSuit };
+            let resultColor = '';
+            let confidence = 50;
+            let totalMatches = 0;
 
-                predictedCard.innerText = finalSuit;
-                predictedCard.className = `predicted-card-box ${result.color === 'red' ? 'red-suit' : 'black-suit'}`;
-                
-                let infoMsg = "";
-                let infoColor = "";
-                if (result.totalMatches > 0) {
-                    infoMsg = `Pronađen šablon (${result.confidence}% sigurnost, ${result.totalMatches}x viđeno)`;
-                    if (result.confidence >= 70) infoColor = "red-suit";
-                    else if (result.confidence < 55) infoColor = "black-suit";
-                } else {
-                    infoMsg = "Novi šablon! Nasumičan izbor (50%).";
+            if (combinationDatabase[key]) {
+                const stats = combinationDatabase[key];
+                totalMatches = stats.red + stats.black;
+                if (totalMatches > 0) {
+                    if (stats.red > stats.black) resultColor = 'red';
+                    else if (stats.black > stats.red) resultColor = 'black';
+                    else resultColor = Math.random() > 0.5 ? 'red' : 'black';
+
+                    confidence = Math.round((stats[resultColor] / totalMatches) * 100);
                 }
-                setInfo(infoMsg, infoColor);
-                btnGen.disabled = false;
+            }
 
-            }, 800);
+            if (!resultColor) {
+                resultColor = Math.random() > 0.5 ? 'red' : 'black';
+            }
+
+            const suitArray = suits[resultColor];
+            const finalSuit = suitArray[Math.floor(Math.random() * suitArray.length)];
+            lastPrediction = { color: resultColor, suit: finalSuit };
+
+            // ISPIS ODMAH (BEZ ANIMACIJE)
+            predictedCard.innerText = finalSuit;
+            predictedCard.className = `predicted-card-box ${resultColor === 'red' ? 'red-suit' : 'black-suit'}`;
+            
+            if (totalMatches > 0) {
+                setInfo(`Pronađen šablon (${confidence}% sigurnost, ${totalMatches}x viđeno)`, confidence >= 70 ? "red-suit" : "");
+            } else {
+                setInfo("Novi šablon! Nasumičan izbor (50%).");
+            }
         }
 
         function handleFeedback(answer) {
             const predictedCard = document.getElementById('predicted-card');
             
-            if (!lastPrediction || predictedCard.innerText === "?" || predictedCard.innerText === "⏳") return;
+            if (!lastPrediction || predictedCard.innerText === "?") return;
 
             let realOutcomeColor = lastPrediction.color;
             let realOutcomeSuit = lastPrediction.suit;
@@ -280,15 +257,15 @@
             const currentColors = cardHistory.map(c => c.color);
             const key = currentColors.join(',');
 
-            // Pamti se isključivo cela sekvenca od 5 karata
+            // Pamti se SAMO PUNA sekvenca od 5 karata
             if (!combinationDatabase[key]) {
                 combinationDatabase[key] = { red: 0, black: 0 };
             }
             combinationDatabase[key][realOutcomeColor]++;
 
-            // Sačuvaj na telefonu
             saveDatabase(combinationDatabase);
 
+            // Pomeranje istorije
             cardHistory.unshift({ color: realOutcomeColor, suit: realOutcomeSuit }); 
             if (cardHistory.length > 5) { cardHistory.pop(); }
 
@@ -297,7 +274,11 @@
             predictedCard.innerText = "?";
             predictedCard.className = "predicted-card-box hidden-card";
             lastPrediction = null;
-            setInfo("Zapamćeno! Unesite sledeće karte.");
+
+            if (cardHistory.length === 5) {
+                document.getElementById('btn-generate').disabled = false;
+                setInfo("Zapamćeno! Spremno za Generate.");
+            }
         }
 
         function renderStats() {
