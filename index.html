@@ -39,8 +39,8 @@
         .stats-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 10px; }
         .stats-panel h3 { font-size: 14px; color: #2ecc71; text-transform: uppercase; letter-spacing: 1px; }
         .db-count { font-size: 11px; color: #888; }
-        .stats-list { max-height: 150px; overflow-y: auto; font-size: 13px; list-style: none; }
-        .stats-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #262626; }
+        .stats-list { max-height: 180px; overflow-y: auto; font-size: 13px; list-style: none; }
+        .stats-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #262626; }
         .combination-dots { display: flex; gap: 4px; align-items: center; }
         .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
         .dot.red { background-color: #ff4d4d; }
@@ -62,7 +62,7 @@
 
         <div class="content">
             <div class="history-section">
-                <h2>Fill card from slot history (max 5)</h2>
+                <h2>Fill card from slot history (exactly 5)</h2>
                 <div class="cards-row" id="history-row"></div>
             </div>
 
@@ -98,7 +98,7 @@
     </div>
 
     <script>
-        // VAŠI PODACI SA SLIKE
+        // POČETNI ŠABLONI (Uvek prisutni u bazi)
         const initialPatterns = {
             "black,red,red,red": { red: 20, black: 30 },
             "red,red,black,black": { red: 19, black: 43 },
@@ -106,23 +106,37 @@
         };
 
         let cardHistory = []; 
-        let storedData = JSON.parse(localStorage.getItem('g4mbler_ai_database_v2'));
-
-        // Spajamo postojeće podatke sa novim šablonima ako nedostaju
-        let combinationDatabase = storedData || {};
         
+        // Funkcija za bezbedno učitavanje baze sa telefona
+        function loadDatabase() {
+            try {
+                let data = localStorage.getItem('g4mbler_ai_database_v2');
+                return data ? JSON.parse(data) : {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        // Funkcija za čuvanje na telefonu
+        function saveDatabase(db) {
+            try {
+                localStorage.setItem('g4mbler_ai_database_v2', JSON.stringify(db));
+            } catch (e) {
+                console.error("Ne mogu sačuvati podatke na uređaju", e);
+            }
+        }
+
+        let combinationDatabase = loadDatabase();
+
+        // Spajanje početnih šablona sa sačuvanom bazom
         Object.keys(initialPatterns).forEach(key => {
             if (!combinationDatabase[key]) {
                 combinationDatabase[key] = initialPatterns[key];
             }
         });
-
-        // Sačuvaj osveženu bazu nazad
-        localStorage.setItem('g4mbler_ai_database_v2', JSON.stringify(combinationDatabase));
+        saveDatabase(combinationDatabase);
 
         let lastPrediction = null; 
-        let currentSequenceKeys = []; 
-        
         const suits = { red: ['♦', '♥'], black: ['♠', '♣'] };
 
         renderHistory();
@@ -145,12 +159,20 @@
         }
 
         function addCard(color) {
-            if (cardHistory.length >= 5) { setInfo("History full (max 5). Press Generate.","red-suit"); return; }
+            if (cardHistory.length >= 5) { 
+                setInfo("Maksimalno 5 karata! Pritisnite Generate.","red-suit"); 
+                return; 
+            }
             const suitArray = suits[color];
             const randomSuit = suitArray[Math.floor(Math.random() * suitArray.length)];
             cardHistory.push({ color: color, suit: randomSuit }); 
             renderHistory();
-            setInfo("Card added. Ready to Generate.");
+            
+            if (cardHistory.length === 5) {
+                setInfo("Uneto 5 karata. Spremno za Generate!", "red-suit");
+            } else {
+                setInfo(`Uneto karata: ${cardHistory.length}/5`);
+            }
         }
 
         function renderHistory() {
@@ -167,81 +189,74 @@
             }
         }
 
-        function findBestPrediction(colors) {
-            const len = colors.length;
+        function findExactPrediction(colors) {
+            const key = colors.join(',');
             
-            for (let depth = len; depth >= 1; depth--) {
-                const subSequence = colors.slice(len - depth);
-                const key = subSequence.join(',');
+            if (combinationDatabase[key]) {
+                const stats = combinationDatabase[key];
+                const total = stats.red + stats.black;
                 
-                if (combinationDatabase[key]) {
-                    const stats = combinationDatabase[key];
-                    const total = stats.red + stats.black;
-                    
-                    if (total > 0) {
-                        let predictedColor = '';
-                        if (stats.red > stats.black) predictedColor = 'red';
-                        else if (stats.black > stats.red) predictedColor = 'black';
-                        else predictedColor = Math.random() > 0.5 ? 'red' : 'black';
+                if (total > 0) {
+                    let predictedColor = '';
+                    if (stats.red > stats.black) predictedColor = 'red';
+                    else if (stats.black > stats.red) predictedColor = 'black';
+                    else predictedColor = Math.random() > 0.5 ? 'red' : 'black';
 
-                        const confidence = Math.round((stats[predictedColor] / total) * 100);
+                    const confidence = Math.round((stats[predictedColor] / total) * 100);
 
-                        return {
-                            color: predictedColor,
-                            depth: depth,
-                            confidence: confidence,
-                            totalMatches: total,
-                            patternKey: key
-                        };
-                    }
+                    return {
+                        color: predictedColor,
+                        confidence: confidence,
+                        totalMatches: total,
+                        patternKey: key
+                    };
                 }
             }
             
             return {
                 color: Math.random() > 0.5 ? 'red' : 'black',
-                depth: 0,
                 confidence: 50,
                 totalMatches: 0,
-                patternKey: null
+                patternKey: key
             };
         }
 
         function generatePrediction() {
-            if (cardHistory.length === 0) { alert("Enter at least one card!"); return; }
+            // USLOV: Zahteva se TAČNO 5 karata
+            if (cardHistory.length < 5) { 
+                alert("Morate uneti tačno 5 karata pre generisanja!"); 
+                setInfo("Unesite tačno 5 karata!", "red-suit");
+                return; 
+            }
 
             const predictedCard = document.getElementById('predicted-card');
             const btnGen = document.getElementById('btn-generate');
             
             predictedCard.className = "predicted-card-box hidden-card shuffling";
             predictedCard.innerText = "⏳";
-            setInfo("Analysing database...");
+            setInfo("Analiziram bazu...");
             btnGen.disabled = true;
 
             const currentColors = cardHistory.map(c => c.color);
 
             setTimeout(() => {
-                const result = findBestPrediction(currentColors);
+                const result = findExactPrediction(currentColors);
                 
                 const suitArray = suits[result.color];
                 const finalSuit = suitArray[Math.floor(Math.random() * suitArray.length)];
                 lastPrediction = { color: result.color, suit: finalSuit };
-                
-                currentSequenceKeys = [];
-                for(let i=1; i<=currentColors.length; i++) {
-                    currentSequenceKeys.push(currentColors.slice(currentColors.length - i).join(','));
-                }
 
                 predictedCard.innerText = finalSuit;
                 predictedCard.className = `predicted-card-box ${result.color === 'red' ? 'red-suit' : 'black-suit'}`;
                 
                 let infoMsg = "";
                 let infoColor = "";
-                if (result.depth > 0) {
-                    infoMsg = `Match Found (${result.confidence}% secure, ${result.totalMatches}x seen)`;
+                if (result.totalMatches > 0) {
+                    infoMsg = `Pronađen šablon (${result.confidence}% sigurnost, ${result.totalMatches}x viđeno)`;
                     if (result.confidence >= 70) infoColor = "red-suit";
                     else if (result.confidence < 55) infoColor = "black-suit";
                 } else {
-                    infoMsg = "No pattern data. Random guess (50%).";
+                    infoMsg = "Novi šablon! Nasumičan izbor (50%).";
                 }
                 setInfo(infoMsg, infoColor);
                 btnGen.disabled = false;
@@ -263,18 +278,16 @@
             }
 
             const currentColors = cardHistory.map(c => c.color);
-            
-            for (let i = 1; i <= currentColors.length; i++) {
-                const subSequence = currentColors.slice(currentColors.length - i);
-                const key = subSequence.join(',');
+            const key = currentColors.join(',');
 
-                if (!combinationDatabase[key]) {
-                    combinationDatabase[key] = { red: 0, black: 0 };
-                }
-                combinationDatabase[key][realOutcomeColor]++;
+            // Pamti se isključivo cela sekvenca od 5 karata
+            if (!combinationDatabase[key]) {
+                combinationDatabase[key] = { red: 0, black: 0 };
             }
+            combinationDatabase[key][realOutcomeColor]++;
 
-            localStorage.setItem('g4mbler_ai_database_v2', JSON.stringify(combinationDatabase));
+            // Sačuvaj na telefonu
+            saveDatabase(combinationDatabase);
 
             cardHistory.unshift({ color: realOutcomeColor, suit: realOutcomeSuit }); 
             if (cardHistory.length > 5) { cardHistory.pop(); }
@@ -284,7 +297,7 @@
             predictedCard.innerText = "?";
             predictedCard.className = "predicted-card-box hidden-card";
             lastPrediction = null;
-            setInfo("Learned. Ready for next Generate.");
+            setInfo("Zapamćeno! Unesite sledeće karte.");
         }
 
         function renderStats() {
